@@ -1,0 +1,102 @@
+body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(45deg, #1a2a6c, #b21f1f);
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 120px);
+      grid-gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cell {
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3em;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.3s ease, transform 0.2s ease;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .cell:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.05);
+    }
+
+    .message {
+      font-size: 1.8em;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    #restartBtn {
+      padding: 12px 20px;
+      font-size: 1.2em;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    #restartBtn:hover {
+      background: #45a049;
+      transform: scale(1.05);
+    }
+
+    .cell.x {
+      background: rgba(255, 0, 0, 0.2);
+    }
+
+    .cell.o {
+      background: rgba(0, 0, 255, 0.2);
+    }
+
+    .cell.x:hover {
+      background: rgba(255, 0, 0, 0.3);
+    }
+
+    .cell.o:hover {
+      background: rgba(0, 0, 255, 0.3);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .cell {
+      animation: fadeIn 0.5s ease;
+    }
