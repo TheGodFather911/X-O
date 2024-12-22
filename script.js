@@ -6,29 +6,55 @@ const board = document.getElementById('board');
     const joinGameBtn = document.getElementById('joinGameBtn');
     const gameCodeInput = document.getElementById('gameCodeInput');
     const gameCode = document.getElementById('gameCode');
+    const playersDiv = document.getElementById('players');
 
     let currentPlayer = 'X';
     let gameBoard = ['', '', '', '', '', '', '', '', ''];
     let gameActive = false;
     let socket;
     let gameId;
+    let isHost = false;
+    let ngrokUrl = '';
 
-    function initSocket() {
-      socket = io();
+    async function fetchNgrokUrl() {
+      try {
+        const response = await fetch('http://localhost:4040/api/tunnels');
+        const data = await response.json();
+        if (data.tunnels && data.tunnels.length > 0) {
+          ngrokUrl = data.tunnels[0].public_url;
+          console.log('ngrok URL:', ngrokUrl);
+        } else {
+          console.error('No ngrok tunnels found.');
+        }
+      } catch (error) {
+        console.error('Error fetching ngrok URL:', error);
+      }
+    }
 
-      socket.on('gameCreated', (id) => {
+    async function initSocket() {
+      await fetchNgrokUrl();
+      if (!ngrokUrl) {
+        message.textContent = 'Failed to fetch ngrok URL. Please ensure ngrok is running.';
+        return;
+      }
+      socket = io(ngrokUrl);
+
+      socket.on('gameCreated', ({ gameId: id, players }) => {
         gameId = id;
+        isHost = true;
         gameCodeInput.style.display = 'none';
         message.textContent = `Share this code: ${gameId}`;
+        updatePlayersDisplay(players);
       });
 
-      socket.on('gameJoined', (game) => {
-        gameId = game.gameId;
+      socket.on('gameJoined', ({ game, gameId: id }) => {
+        gameId = id;
         gameBoard = game.board;
         currentPlayer = game.currentPlayer;
         gameActive = game.gameActive;
         gameCodeInput.style.display = 'none';
         updateBoard();
+        updatePlayersDisplay(game.players);
         message.textContent = `Player ${currentPlayer}'s turn`;
       });
 
@@ -69,7 +95,17 @@ const board = document.getElementById('board');
 
       socket.on('playerLeft', (game) => {
         gameActive = false;
+        updatePlayersDisplay(game.players);
         message.textContent = 'Opponent left the game.';
+      });
+    }
+
+    function updatePlayersDisplay(players) {
+      playersDiv.innerHTML = '';
+      players.forEach(player => {
+        const playerElement = document.createElement('div');
+        playerElement.textContent = `Player ${player.slice(0, 5)} ${isHost ? '(Host)' : ''}`;
+        playersDiv.appendChild(playerElement);
       });
     }
 

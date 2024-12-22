@@ -23,7 +23,7 @@ const express = require('express');
           gameActive: true
         };
         socket.join(gameId);
-        socket.emit('gameCreated', gameId);
+        socket.emit('gameCreated', { gameId, players: games[gameId].players });
         console.log('Game created:', gameId);
       });
 
@@ -31,7 +31,7 @@ const express = require('express');
         if (games[gameId] && games[gameId].players.length < 2) {
           games[gameId].players.push(socket.id);
           socket.join(gameId);
-          io.to(gameId).emit('gameJoined', games[gameId]);
+          io.to(gameId).emit('gameJoined', { game: games[gameId], gameId });
           console.log('User joined game:', gameId);
         } else {
           socket.emit('joinError', 'Game is full or does not exist.');
