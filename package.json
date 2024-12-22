@@ -1,0 +1,18 @@
+{
+      "name": "tic-tac-toe-online",
+      "version": "1.0.0",
+      "description": "Online Tic Tac Toe with shareable codes",
+      "main": "server.js",
+      "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+      },
+      "dependencies": {
+        "express": "^4.18.2",
+        "socket.io": "^4.7.2",
+        "uuid": "^9.0.1"
+      },
+      "devDependencies": {
+        "nodemon": "^3.0.1"
+      }
+    }

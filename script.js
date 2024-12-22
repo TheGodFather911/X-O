@@ -2,68 +2,119 @@ const board = document.getElementById('board');
     const cells = document.querySelectorAll('.cell');
     const message = document.getElementById('message');
     const restartBtn = document.getElementById('restartBtn');
+    const createGameBtn = document.getElementById('createGameBtn');
+    const joinGameBtn = document.getElementById('joinGameBtn');
+    const gameCodeInput = document.getElementById('gameCodeInput');
+    const gameCode = document.getElementById('gameCode');
+
     let currentPlayer = 'X';
     let gameBoard = ['', '', '', '', '', '', '', '', ''];
-    let gameActive = true;
+    let gameActive = false;
+    let socket;
+    let gameId;
 
-    function checkWinner() {
-      const winningCombos = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
-        [0, 4, 8], [2, 4, 6]
-      ];
+    function initSocket() {
+      socket = io();
 
-      for (let combo of winningCombos) {
-        const [a, b, c] = combo;
-        if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
-          message.textContent = `Player ${currentPlayer} wins!`;
-          gameActive = false;
+      socket.on('gameCreated', (id) => {
+        gameId = id;
+        gameCodeInput.style.display = 'none';
+        message.textContent = `Share this code: ${gameId}`;
+      });
+
+      socket.on('gameJoined', (game) => {
+        gameId = game.gameId;
+        gameBoard = game.board;
+        currentPlayer = game.currentPlayer;
+        gameActive = game.gameActive;
+        gameCodeInput.style.display = 'none';
+        updateBoard();
+        message.textContent = `Player ${currentPlayer}'s turn`;
+      });
+
+      socket.on('joinError', (error) => {
+        message.textContent = error;
+      });
+
+      socket.on('moveMade', ({ board, currentPlayer: nextPlayer }) => {
+        gameBoard = board;
+        currentPlayer = nextPlayer;
+        updateBoard();
+        message.textContent = `Player ${currentPlayer}'s turn`;
+      });
+
+      socket.on('gameEnded', ({ winner, board }) => {
+        gameBoard = board;
+        gameActive = false;
+        updateBoard();
+        if (winner === 'draw') {
+          message.textContent = "It's a draw!";
+        } else {
+          message.textContent = `Player ${winner} wins!`;
           cells.forEach(cell => {
-            if (cell.dataset.index == a || cell.dataset.index == b || cell.dataset.index == c) {
-              cell.classList.add(currentPlayer.toLowerCase());
+            if (cell.dataset.index == board.indexOf(winner) || cell.dataset.index == board.lastIndexOf(winner)) {
+              cell.classList.add(winner.toLowerCase());
             }
           });
-          return;
         }
-      }
+      });
 
-      if (!gameBoard.includes('')) {
-        message.textContent = "It's a draw!";
+      socket.on('gameRestarted', (game) => {
+        gameBoard = game.board;
+        currentPlayer = game.currentPlayer;
+        gameActive = game.gameActive;
+        updateBoard();
+        message.textContent = `Player ${currentPlayer}'s turn`;
+      });
+
+      socket.on('playerLeft', (game) => {
         gameActive = false;
-      }
+        message.textContent = 'Opponent left the game.';
+      });
+    }
+
+    function updateBoard() {
+      cells.forEach((cell, index) => {
+        cell.textContent = gameBoard[index];
+        cell.classList.remove('x', 'o');
+        if (gameBoard[index] === 'X') {
+          cell.classList.add('x');
+        } else if (gameBoard[index] === 'O') {
+          cell.classList.add('o');
+        }
+      });
     }
 
     function handleCellClick(e) {
       if (!gameActive) return;
-
       const cell = e.target;
       const index = cell.dataset.index;
-
       if (gameBoard[index] === '') {
-        gameBoard[index] = currentPlayer;
-        cell.textContent = currentPlayer;
-        checkWinner();
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        if (gameActive) {
-          message.textContent = `Player ${currentPlayer}'s turn`;
-        }
+        socket.emit('makeMove', { gameId, index });
       }
     }
 
     function restartGame() {
-      gameBoard = ['', '', '', '', '', '', '', '', ''];
-      currentPlayer = 'X';
-      gameActive = true;
-      message.textContent = `Player ${currentPlayer}'s turn`;
-      cells.forEach(cell => {
-        cell.textContent = '';
-        cell.classList.remove('x', 'o');
-      });
+      if (gameId) {
+        socket.emit('restartGame', gameId);
+      }
     }
+
+    createGameBtn.addEventListener('click', () => {
+      initSocket();
+      socket.emit('createGame');
+    });
+
+    joinGameBtn.addEventListener('click', () => {
+      initSocket();
+      const code = gameCode.value;
+      if (code) {
+        socket.emit('joinGame', code);
+      }
+    });
 
     cells.forEach(cell => {
       cell.addEventListener('click', handleCellClick);
     });
 
     restartBtn.addEventListener('click', restartGame);
-    message.textContent = `Player ${currentPlayer}'s turn`;
