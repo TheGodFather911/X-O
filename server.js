@@ -2,6 +2,7 @@ const express = require('express');
     const http = require('http');
     const { Server } = require('socket.io');
     const { v4: uuidv4 } = require('uuid');
+    const ngrok = require('@ngrok/ngrok');
 
     const app = express();
     const server = http.createServer(app);
@@ -104,6 +105,10 @@ const express = require('express');
     }
 
     const PORT = 3000;
-    server.listen(PORT, () => {
+    server.listen(PORT, async () => {
       console.log(`Server running on http://localhost:${PORT}`);
+      const tunnel = await ngrok.connect({
+        addr: PORT,
+      });
+      console.log(`ngrok URL: ${tunnel.url()}`);
     });

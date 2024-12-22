@@ -7,6 +7,9 @@ const board = document.getElementById('board');
     const gameCodeInput = document.getElementById('gameCodeInput');
     const gameCode = document.getElementById('gameCode');
     const playersDiv = document.getElementById('players');
+    const ngrokInput = document.getElementById('ngrokInput');
+    const ngrokUrlInput = document.getElementById('ngrokUrlInput');
+    const connectBtn = document.getElementById('connectBtn');
 
     let currentPlayer = 'X';
     let gameBoard = ['', '', '', '', '', '', '', '', ''];
@@ -15,6 +18,8 @@ const board = document.getElementById('board');
     let gameId;
     let isHost = false;
     let ngrokUrl = '';
+    let fetchAttempts = 0;
+    const maxFetchAttempts = 3;
 
     async function fetchNgrokUrl() {
       try {
@@ -23,26 +28,42 @@ const board = document.getElementById('board');
         if (data.tunnels && data.tunnels.length > 0) {
           ngrokUrl = data.tunnels[0].public_url;
           console.log('ngrok URL:', ngrokUrl);
+          return true;
         } else {
           console.error('No ngrok tunnels found.');
+          return false;
         }
       } catch (error) {
         console.error('Error fetching ngrok URL:', error);
+        return false;
       }
     }
 
     async function initSocket() {
-      await fetchNgrokUrl();
-      if (!ngrokUrl) {
-        message.textContent = 'Failed to fetch ngrok URL. Please ensure ngrok is running.';
-        return;
-      }
-      socket = io(ngrokUrl);
+      message.textContent = 'Fetching ngrok URL...';
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
+      const fetchSuccess = await fetchNgrokUrl();
+      if (fetchSuccess) {
+        socket = io(ngrokUrl);
+        setupSocketEvents();
+      } else if (fetchAttempts < maxFetchAttempts) {
+        fetchAttempts++;
+        message.textContent = `Failed to fetch ngrok URL. Retrying... (${fetchAttempts}/${maxFetchAttempts})`;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        initSocket();
+      } else {
+        message.textContent = 'Failed to fetch ngrok URL. Please enter it manually.';
+        ngrokInput.style.display = 'flex';
+      }
+    }
+
+    function setupSocketEvents() {
       socket.on('gameCreated', ({ gameId: id, players }) => {
         gameId = id;
         isHost = true;
         gameCodeInput.style.display = 'none';
+        ngrokInput.style.display = 'none';
         message.textContent = `Share this code: ${gameId}`;
         updatePlayersDisplay(players);
       });
@@ -53,6 +74,7 @@ const board = document.getElementById('board');
         currentPlayer = game.currentPlayer;
         gameActive = game.gameActive;
         gameCodeInput.style.display = 'none';
+        ngrokInput.style.display = 'none';
         updateBoard();
         updatePlayersDisplay(game.players);
         message.textContent = `Player ${currentPlayer}'s turn`;
@@ -146,6 +168,16 @@ const board = document.getElementById('board');
       const code = gameCode.value;
       if (code) {
         socket.emit('joinGame', code);
+      }
+    });
+
+    connectBtn.addEventListener('click', () => {
+      ngrokUrl = ngrokUrlInput.value;
+      if (ngrokUrl) {
+        socket = io(ngrokUrl);
+        setupSocketEvents();
+        ngrokInput.style.display = 'none';
+        message.textContent = 'Connecting...';
       }
     });
 
